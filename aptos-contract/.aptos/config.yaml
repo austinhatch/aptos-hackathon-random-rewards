@@ -1,0 +1,11 @@
+---
+profiles:
+  default:
+    #NOTE: Enter your private key here
+    # private_key:
+    #NOTE: Enter your public key here
+    # public_key:
+    #NOTE: Enter your account here
+    # account:
+    rest_url: "https://fullnode.testnet.aptoslabs.com"
+    faucet_url: "https://faucet.testnet.aptoslabs.com"
