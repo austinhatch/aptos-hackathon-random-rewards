@@ -3,7 +3,7 @@ module my_management_addr::my_management {
     use std::error;
     use std::string::{Self, String};
     use std::option::{Self, Option};
-    use std::vector::Vector
+    use std::vector::Vector;
     use aptos_token_objects::collection;
     use aptos_token_objects::token;
     use aptos_framework::object::{Self, Object};
@@ -11,8 +11,9 @@ module my_management_addr::my_management {
     use aptos_framework::aptos_account;
     use aptos_framework::event;
     use aptos_framework::timestamp;
-
-    use aptos_std::randomness
+    use aptos_std::smart_vector;
+    use aptos_std::smart_vector::SmartVector;
+    use aptos_framework::randomness;
 
     #[test_only]
     use aptos_std::debug::print;
@@ -231,7 +232,7 @@ module my_management_addr::my_management {
     /*
         Function for minting a truly random reward or ticket (Token) based on a truly random distribution
     */
-    entry public fun create_random_ticket(admin: &signer, receiver: address, event: Object<NYCEvent>, ticket_types: vector<string>, ticket_id: String, price_apt: u64, price: u64, date: u64)
+    entry public fun create_random_ticket(admin: &signer, receiver: address, event: Object<NYCEvent>, ticket_types: SmartVector<String>, ticket_id: String, price_apt: u64, price: u64, date: u64)
     acquires NYCConfig, NYCEvent, NYCTicket, NYCOrganization {
         let nyc_config_obj = is_admin(admin);
         let sender_addr = signer::address_of(admin);
@@ -243,9 +244,11 @@ module my_management_addr::my_management {
         let event_obj = borrow_global_mut<NYCEvent>(object::object_address(&event));
         let org_obj = borrow_global_mut<NYCOrganization>(object::object_address(&event_obj.organization));
 
+        //generate random ticket type
+        let random_ticket_type_id = randomness::u64_range(0,smart_vector::length(&ticket_types));
+        let ticket_type_id = smart_vector::borrow(&ticket_types, random_ticket_type_id);
 
         let uri = generate_ticket_uri_from_id(nyc_config_obj.base_uri, org_obj.id, event_obj.id, ticket_type_id);
-
 
         let token_constructor_ref = token::create_named_token(admin, event_obj.id, string::utf8(EMPTY_STRING), ticket_id, option::none(), uri);
         let object_signer = object::generate_signer(&token_constructor_ref);
@@ -257,10 +260,6 @@ module my_management_addr::my_management {
 
         let linear_transfer_ref = object::generate_linear_transfer_ref(&transfer_ref);
         object::transfer_with_ref(linear_transfer_ref, receiver);
-
-        //generate random ticket type
-        let random_ticket_type_id = randomness::u64_range(0,Vector::length(&ticket_types))
-        let ticket_type_id = Vector::borrow(&ticket_types, random_ticket_type_id)
 
         let ticket = NYCTicket {
             id: ticket_id,
@@ -298,9 +297,9 @@ module my_management_addr::my_management {
     }
 
     /*
-        Function for minting a weighted random reward or ticket (Token) based on a vector of weights needing to add to 100
+        Function for minting a weighted random reward or ticket (Token) based on a smart_vector of weights needing to add to 100
     */
-    entry public fun create_weighted_random_ticket(admin: &signer, receiver: address, event: Object<NYCEvent>, ticket_types: vector<string>, ticket_weights: vector<u64>, ticket_id: String, price_apt: u64, price: u64, date: u64)
+    entry public fun create_weighted_random_ticket(admin: &signer, receiver: address, event: Object<NYCEvent>, ticket_types: SmartVector<String>, ticket_weights: SmartVector<u64>, ticket_id: String, price_apt: u64, price: u64, date: u64)
     acquires NYCConfig, NYCEvent, NYCTicket, NYCOrganization {
         let nyc_config_obj = is_admin(admin);
         let sender_addr = signer::address_of(admin);
@@ -310,16 +309,26 @@ module my_management_addr::my_management {
         };
         
         //Assert that the ticket types and weights have the same length
-        let len_types = Vector::length(&ticket_types)
-        let len_weights = Vector::length(&ticket_weights)
-        assert(len_types == len_weights, 42)
+        let len_types = smart_vector::length(&ticket_types);
+        let len_weights = smart_vector::length(&ticket_weights);
+        assert!(len_types == len_weights, 42);
+
+        //Get total sum of weights
+        let sum = 0u64;
+        let i = 0;
+
+        while (i < len_weights) {
+            let element = *smart_vector::borrow(&ticket_weights, i);
+            sum = sum + element;
+            i = i + 1;
+        };
+
+        let ticket_type_id = find_winning_ticket_type(tickes_types, ticket_weights, sum);
 
         let event_obj = borrow_global_mut<NYCEvent>(object::object_address(&event));
         let org_obj = borrow_global_mut<NYCOrganization>(object::object_address(&event_obj.organization));
 
-
         let uri = generate_ticket_uri_from_id(nyc_config_obj.base_uri, org_obj.id, event_obj.id, ticket_type_id);
-
 
         let token_constructor_ref = token::create_named_token(admin, event_obj.id, string::utf8(EMPTY_STRING), ticket_id, option::none(), uri);
         let object_signer = object::generate_signer(&token_constructor_ref);
@@ -331,18 +340,6 @@ module my_management_addr::my_management {
 
         let linear_transfer_ref = object::generate_linear_transfer_ref(&transfer_ref);
         object::transfer_with_ref(linear_transfer_ref, receiver);
-
-        //Get total sum of weights
-        let sum = 0u64;
-        let i = 0;
-
-        while (i < len_weights) {
-            let element = *Vector::borrow(&ticket_weights, i);
-            sum = sum + element;
-            i = i + 1;
-        };
-
-        let ticket_type_id = find_winning_ticket_type(tickes_types, ticket_weights, sum)
 
         let ticket = NYCTicket {
             id: ticket_id,
@@ -379,19 +376,19 @@ module my_management_addr::my_management {
         );
     }
     
-    fun find_winning_ticket_type( tickes_types: vector<string>, ticket_weights: vector<u64>, total_weights: u64){
-        let random_ticket_type_id = randomness::u64_range(0,total_weights)
+    fun find_winning_ticket_type( tickes_types: SmartVector<String>, ticket_weights: SmartVector<u64>, total_weights: u64){
+        let random_ticket_type_id = randomness::u64_range(0,total_weights);
 
         //Find a winner based on those weights
         let j = 0;
         let accumulated_shares = 0u64;
 
-        while (j < Vector::length(&ticket_weights)) {
-            let shares = Vector::borrow(&ticket_weights, j);
+        while (j < smart_vector::length(&ticket_weights)) {
+            let shares = smart_vector::borrow(&ticket_weights, j);
 
             accumulated_shares = accumulated_shares + shares;
             if (accumulated_shares >= random_number) {
-                let winner = Vector::borrow(&ticket_types, j);
+                let winner = smart_vector::borrow(&ticket_types, j);
                 return winner
             };
 

@@ -12,14 +12,17 @@ my_management_addr='0xb240805074b793270b7f263d732cc113b5a93baffa0a41d554b5d1822a
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "mainnet"
+rev = "randomnet"
 subdir = "aptos-move/framework/aptos-framework"
 
 [dependencies.AptosTokenObjects]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "mainnet"
+rev = "randomnet"
 subdir = "aptos-move/framework/aptos-token-objects"
 
-
+[dependencies.AptosStdlib]
+git = "https://github.com/aptos-labs/aptos-core.git"
+rev = "randomnet"
+subdir = "aptos-move/framework/aptos-stdlib"
 
 [dev-dependencies]
