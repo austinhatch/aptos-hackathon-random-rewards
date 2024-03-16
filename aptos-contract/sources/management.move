@@ -11,7 +11,6 @@ module my_management_addr::my_management {
     use aptos_framework::event;
     use aptos_framework::timestamp;
     use aptos_std::smart_vector;
-    use aptos_std::smart_vector::SmartVector;
     use aptos_framework::randomness;
 
     #[test_only]
@@ -302,104 +301,123 @@ module my_management_addr::my_management {
     /*
         Function for minting a weighted random reward or ticket (Token) based on a smart_vector of weights needing to add to 100
     */
-    // entry public fun create_weighted_random_ticket(admin: &signer, receiver: address, event: Object<NYCEvent>, ticket_types: SmartVector<String>, ticket_weights: SmartVector<u64>, ticket_id: String, price_apt: u64, price: u64, date: u64)
-    // acquires NYCConfig, NYCEvent, NYCTicket, NYCOrganization {
-    //     let nyc_config_obj = is_admin(admin);
-    //     let sender_addr = signer::address_of(admin);
+    entry public fun create_weighted_random_ticket(admin: &signer, receiver: address, event: Object<NYCEvent>, ticket_types: vector<String>, ticket_weights: vector<u64>, ticket_id: String, price_apt: u64, price: u64, date: u64)
+    acquires NYCConfig, NYCEvent, NYCTicket, NYCOrganization {
+        let nyc_config_obj = is_admin(admin);
+        let sender_addr = signer::address_of(admin);
 
-    //     if(!account::exists_at(receiver)) {
-    //         aptos_account::create_account(receiver);
-    //     };
+        if(!account::exists_at(receiver)) {
+            aptos_account::create_account(receiver);
+        };
         
-    //     //Assert that the ticket types and weights have the same length
-    //     let len_types = smart_vector::length(&ticket_types);
-    //     let len_weights = smart_vector::length(&ticket_weights);
-    //     assert!(len_types == len_weights, 42);
+        //Assert that the ticket types and weights have the same length
 
-    //     //Get total sum of weights
-    //     let sum = 0u64;
-    //     let i = 0;
+        let ticket_types_smart_vector = smart_vector::new<String>();
+        smart_vector::add_all(&mut ticket_types_smart_vector, ticket_types);
 
-    //     while (i < len_weights) {
-    //         let element = *smart_vector::borrow(&ticket_weights, i);
-    //         sum = sum + element;
-    //         i = i + 1;
-    //     };
+        let ticket_weights_smart_vector = smart_vector::new<u64>();
+        smart_vector::add_all(&mut ticket_weights_smart_vector, ticket_weights);
 
-    //     let ticket_type_id = find_winning_ticket_type(tickes_types, ticket_weights, sum);
 
-    //     let event_obj = borrow_global_mut<NYCEvent>(object::object_address(&event));
-    //     let org_obj = borrow_global_mut<NYCOrganization>(object::object_address(&event_obj.organization));
+        let len_types = smart_vector::length(&ticket_types_smart_vector);
+        let len_weights = smart_vector::length(&ticket_weights_smart_vector);
+        assert!(len_types == len_weights, 42);
 
-    //     let uri = generate_ticket_uri_from_id(nyc_config_obj.base_uri, org_obj.id, event_obj.id, ticket_type_id);
+        //Get total sum of weights
+        let sum = 0u64;
+        let i = 0u64;
 
-    //     let token_constructor_ref = token::create_named_token(admin, event_obj.id, string::utf8(EMPTY_STRING), ticket_id, option::none(), uri);
-    //     let object_signer = object::generate_signer(&token_constructor_ref);
-    //     let transfer_ref = object::generate_transfer_ref(&token_constructor_ref);
-    //     let mutator_ref = token::generate_mutator_ref(&token_constructor_ref);
-    //     let extend_ref = object::generate_extend_ref(&token_constructor_ref);
+        while (i < len_weights) {
+            let element = smart_vector::borrow(&ticket_weights_smart_vector, i);
+            sum = sum + *element;
+            i = i + 1;
+        };
 
-    //     object::disable_ungated_transfer(&transfer_ref);
+        smart_vector::destroy(ticket_types_smart_vector);
+        smart_vector::destroy(ticket_weights_smart_vector);
 
-    //     let linear_transfer_ref = object::generate_linear_transfer_ref(&transfer_ref);
-    //     object::transfer_with_ref(linear_transfer_ref, receiver);
 
-    //     let ticket = NYCTicket {
-    //         id: ticket_id,
-    //         event,
-    //         ticket_type_id,
-    //         organization: event_obj.organization,
-    //         attended_at: 0,
-    //         attended_by: option::none(),
-    //         transfer_events: object::new_event_handle(&object_signer),
-    //         transfer_ref,
-    //         mutator_ref,
-    //         extend_ref
-    //     };
+        let ticket_type_id = find_winning_ticket_type(ticket_types, ticket_weights, sum);
 
-    //     move_to(&object_signer, ticket);
+        let event_obj = borrow_global_mut<NYCEvent>(object::object_address(&event));
+        let org_obj = borrow_global_mut<NYCOrganization>(object::object_address(&event_obj.organization));
 
-    //     let purchase_date = timestamp::now_microseconds();
-    //     if(date > 0) {
-    //         assert!(date < timestamp::now_microseconds(), EINALID_DATE_OVERRIDE);
-    //         purchase_date = date;
-    //     };
+        let uri = generate_ticket_uri_from_id(nyc_config_obj.base_uri, org_obj.id, event_obj.id, ticket_type_id);
 
-    //     let ticket_obj = borrow_global_mut<NYCTicket>(object::address_from_constructor_ref(&token_constructor_ref));
-    //     event::emit_event<NYCTicketTransferEvent>(
-    //         &mut ticket_obj.transfer_events,
-    //         NYCTicketTransferEvent {
-    //             ticket_address: generate_ticket_address(sender_addr, event_obj.id, ticket_id),
-    //             receiver_address: receiver,
-    //             price_apt,
-    //             price,
-    //             currency: event_obj.currency,
-    //             date: purchase_date
-    //         }
-    //     );
-    // }
+        let token_constructor_ref = token::create_named_token(admin, event_obj.id, string::utf8(EMPTY_STRING), ticket_id, option::none(), uri);
+        let object_signer = object::generate_signer(&token_constructor_ref);
+        let transfer_ref = object::generate_transfer_ref(&token_constructor_ref);
+        let mutator_ref = token::generate_mutator_ref(&token_constructor_ref);
+        let extend_ref = object::generate_extend_ref(&token_constructor_ref);
+
+        object::disable_ungated_transfer(&transfer_ref);
+
+        let linear_transfer_ref = object::generate_linear_transfer_ref(&transfer_ref);
+        object::transfer_with_ref(linear_transfer_ref, receiver);
+
+        let ticket = NYCTicket {
+            id: ticket_id,
+            event,
+            ticket_type_id,
+            organization: event_obj.organization,
+            attended_at: 0,
+            attended_by: option::none(),
+            transfer_events: object::new_event_handle(&object_signer),
+            transfer_ref,
+            mutator_ref,
+            extend_ref
+        };
+
+        move_to(&object_signer, ticket);
+
+        let purchase_date = timestamp::now_microseconds();
+        if(date > 0) {
+            assert!(date < timestamp::now_microseconds(), EINALID_DATE_OVERRIDE);
+            purchase_date = date;
+        };
+
+        let ticket_obj = borrow_global_mut<NYCTicket>(object::address_from_constructor_ref(&token_constructor_ref));
+        event::emit_event<NYCTicketTransferEvent>(
+            &mut ticket_obj.transfer_events,
+            NYCTicketTransferEvent {
+                ticket_address: generate_ticket_address(sender_addr, event_obj.id, ticket_id),
+                receiver_address: receiver,
+                price_apt,
+                price,
+                currency: event_obj.currency,
+                date: purchase_date
+            }
+        );
+    }
     
-    // fun find_winning_ticket_type( tickes_types: SmartVector<String>, ticket_weights: SmartVector<u64>, total_weights: u64){
-    //     let random_ticket_type_id = randomness::u64_range(0,total_weights);
+    fun find_winning_ticket_type( ticket_types: vector<String>, ticket_weights: vector<u64>, total_weights: u64) : String{
+        let random_number = randomness::u64_range(0,total_weights);
 
-    //     //Find a winner based on those weights
-    //     let j = 0;
-    //     let accumulated_shares = 0u64;
+        let ticket_types_smart_vector = smart_vector::new<String>();
+        smart_vector::add_all(&mut ticket_types_smart_vector, ticket_types);
 
-    //     while (j < smart_vector::length(&ticket_weights)) {
-    //         let shares = smart_vector::borrow(&ticket_weights, j);
+        let ticket_weights_smart_vector = smart_vector::new<u64>();
+        smart_vector::add_all(&mut ticket_weights_smart_vector, ticket_weights);
 
-    //         accumulated_shares = accumulated_shares + shares;
-    //         if (accumulated_shares >= random_number) {
-    //             let winner = smart_vector::borrow(&ticket_types, j);
-    //             return winner
-    //         };
+        //Find a winner based on those weights
+        let j = 0u64;
+        let accumulated_shares = 0u64;
 
-    //         j = j + 1;
-    //     };
-    //     // Fallback or error if no winner is found
-    //     abort(404)
-    // }
+        while (j < smart_vector::length(&ticket_weights_smart_vector)) {
+            let shares = smart_vector::borrow(&ticket_weights_smart_vector, j);
+
+            accumulated_shares = accumulated_shares + *shares;
+            if (accumulated_shares >= random_number) {
+                let winner = smart_vector::borrow(&ticket_types_smart_vector, j);
+                return *winner
+            };
+
+            j = j + 1;
+        };
+
+        // Fallback or error if no winner is found
+        abort(404)
+    }
 
     entry public fun transfer_ticket(admin: &signer, receiver: address, ticket: Object<NYCTicket>, price_apt: u64, price: u64) acquires NYCConfig, NYCTicket, NYCEvent {
         is_admin(admin);
