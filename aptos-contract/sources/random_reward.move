@@ -84,7 +84,7 @@ module my_management_addr::random_reward {
     
 
     fun init_module(sender: &signer) {
-        let base_uri = string::utf8(b"https://aptos-metadata.s3.us-east-2.amazonaws.com/baseUri/");
+        let base_uri = string::utf8(b"https://aptos-metadata.s3.us-east-2.amazonaws.com/random-hack/");
 
         let on_chain_config = NYCConfig {
             admin: signer::address_of(sender),

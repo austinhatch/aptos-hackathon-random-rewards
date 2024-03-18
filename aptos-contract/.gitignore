@@ -1,2 +1,4 @@
 # Dependency directories
 build/
+.aptos/
+.DS_Store
