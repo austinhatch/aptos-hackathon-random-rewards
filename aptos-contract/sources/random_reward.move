@@ -1,4 +1,4 @@
-module my_management_addr::my_management {
+module my_management_addr::random_reward {
     use std::signer;
     use std::error;
     use std::string::{Self, String};
@@ -228,10 +228,15 @@ module my_management_addr::my_management {
         );
     }
 
+    entry fun create_random_ticket(admin: &signer, receiver: address, event: Object<NYCEvent>, ticket_types: vector<String>, ticket_id: String, price_apt: u64, price: u64, date: u64) acquires NYCConfig, NYCEvent, NYCTicket, NYCOrganization {
+        is_admin(admin);
+        create_random_ticket_internal(admin, receiver, event, ticket_types, ticket_id, price_apt, price, date);
+    }
+
     /*
         Function for minting a truly random reward or ticket (Token) based on a truly random distribution
     */
-    entry public fun create_random_ticket(admin: &signer, receiver: address, event: Object<NYCEvent>, ticket_types: vector<String>, ticket_id: String, price_apt: u64, price: u64, date: u64)
+    public fun create_random_ticket_internal(admin: &signer, receiver: address, event: Object<NYCEvent>, ticket_types: vector<String>, ticket_id: String, price_apt: u64, price: u64, date: u64)
     acquires NYCConfig, NYCEvent, NYCTicket, NYCOrganization {
         let nyc_config_obj = is_admin(admin);
         let sender_addr = signer::address_of(admin);
@@ -298,10 +303,15 @@ module my_management_addr::my_management {
         );
     }
 
+    entry fun create_weighted_random_ticket(admin: &signer, receiver: address, event: Object<NYCEvent>, ticket_types: vector<String>, ticket_weights: vector<u64>, ticket_id: String, price_apt: u64, price: u64, date: u64) acquires NYCConfig, NYCEvent, NYCTicket, NYCOrganization {
+        is_admin(admin);
+        create_weighted_random_ticket_internal(admin, receiver, event, ticket_types, ticket_weights, ticket_id, price_apt, price, date);
+    }
+
     /*
         Function for minting a weighted random reward or ticket (Token) based on a smart_vector of weights needing to add to 100
     */
-    entry public fun create_weighted_random_ticket(admin: &signer, receiver: address, event: Object<NYCEvent>, ticket_types: vector<String>, ticket_weights: vector<u64>, ticket_id: String, price_apt: u64, price: u64, date: u64)
+    public fun create_weighted_random_ticket_internal(admin: &signer, receiver: address, event: Object<NYCEvent>, ticket_types: vector<String>, ticket_weights: vector<u64>, ticket_id: String, price_apt: u64, price: u64, date: u64)
     acquires NYCConfig, NYCEvent, NYCTicket, NYCOrganization {
         let nyc_config_obj = is_admin(admin);
         let sender_addr = signer::address_of(admin);

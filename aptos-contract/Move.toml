@@ -1,10 +1,10 @@
 [package]
-name = "management"
+name = "random_reward"
 version = "1.0.0"
 authors = []
 
 [addresses]
-my_management_addr='0xb240805074b793270b7f263d732cc113b5a93baffa0a41d554b5d1822ac3d2db'
+my_management_addr='0xe1232f6fef99143c508b0036a0d046486e6d47e21a22c26384e1f320843f0b06'
 
 
 [dev-addresses]
