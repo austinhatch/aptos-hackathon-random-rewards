@@ -404,17 +404,22 @@ module my_management_addr::my_management {
         let accumulated_shares = 0u64;
 
         while (j < smart_vector::length(&ticket_weights_smart_vector)) {
-            let shares = smart_vector::borrow(&ticket_weights_smart_vector, j);
-
-            accumulated_shares = accumulated_shares + *shares;
+            let shares = *smart_vector::borrow(&ticket_weights_smart_vector, j);
+            accumulated_shares = accumulated_shares + shares;
+            
             if (accumulated_shares >= random_number) {
-                let winner = smart_vector::borrow(&ticket_types_smart_vector, j);
-                return *winner
-            };
+                let winner = *smart_vector::borrow(&ticket_types_smart_vector, j);
+                smart_vector::destroy(ticket_types_smart_vector);
+                smart_vector::destroy(ticket_weights_smart_vector);
+                return winner
 
+            } else{
+
+            };
             j = j + 1;
         };
-
+        smart_vector::destroy(ticket_types_smart_vector);
+        smart_vector::destroy(ticket_weights_smart_vector);
         // Fallback or error if no winner is found
         abort(404)
     }
